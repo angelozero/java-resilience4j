@@ -1,16 +1,15 @@
-# Resilience4j Application
-
-Este projeto é uma aplicação Java construída com Spring Boot que utiliza o Resilience4j para implementar padrões de resiliência em chamadas de APIs externas. O Resilience4j oferece soluções para lidar com falhas de serviço, incluindo **Circuit Breaker**, **Retry**, e **Fallback**, ajudando a melhorar a robustez e a resiliência da aplicação.
+# SpringBoot e Resilience4j
 
 ## O que é Resilience4j?
 
-O Resilience4j é uma biblioteca leve para Java que fornece padrões de resiliência, como Circuit Breaker, Retry, Rate Limiter, Bulkhead, e Timeout. Essas funcionalidades ajudam a proteger a aplicação contra falhas de serviços externos, garantindo que a aplicação continue a operar mesmo quando um serviço falha.
+O [Resilience4j](https://resilience4j.readme.io/docs/getting-started) é uma biblioteca leve para Java que fornece padrões de resiliência, como Circuit Breaker, Retry, Rate Limiter, Bulkhead, e Timeout. Essas funcionalidades ajudam a proteger a aplicação contra falhas de serviços externos, garantindo que a aplicação continue a operar mesmo quando um serviço falha.
 
-## Funcionalidades Implementadas
+---
 
-### Circuit Breaker
+### Circuit Breaker e Retry
 
-O padrão Circuit Breaker impede que a aplicação faça chamadas a um serviço que já falhou várias vezes consecutivas, permitindo que o serviço tenha tempo para se recuperar. Abaixo, um exemplo de como o Circuit Breaker é implementado na classe `GetStarWarCharacterByIdService`:
+- O padrão Circuit Breaker impede que a aplicação faça chamadas a um serviço que já falhou várias vezes consecutivas, permitindo que o serviço tenha tempo para se recuperar.
+- O padrão Retry permite que a aplicação tente novamente uma operação falha várias vezes antes de desistir.
 
 ```java
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -19,40 +18,28 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 @AllArgsConstructor
 public class GetStarWarCharacterByIdService {
 
-    @CircuitBreaker(name = "GetStarWarCharacterByIdService", fallbackMethod = "fallbackMethod")
+    private final StarWartRestApiFeignClient starWartRestApiFeignClient;
+    private final FallBackService fallBackService;
+
+
+    @CircuitBreaker(name = "GetStarWarCharacterByIdService", fallbackMethod = "fallBackGetStarWarCharacterById")
+    //@Retry(name = "GetStarWarCharacterByIdService", fallbackMethod = "fallBackGetStarWarCharacterById")
     public StarWarsCharacter execute(Integer id) {
-        // Lógica para chamar o serviço externo
+        if (new Random().nextBoolean()) {
+            return starWartRestApiFeignClient.getStarWarsCharacterById(id);
+        }
+        throw new RuntimeException("The Darth Sith");
     }
 
-    public StarWarsCharacter fallbackMethod(Integer id, Exception ex) {
-        // Lógica de fallback
-    }
-}
-```
-
-### Retry
-
-O padrão Retry permite que a aplicação tente novamente uma operação falha várias vezes antes de desistir. Aqui está um exemplo de como o Retry é usado:
-
-```java
-import io.github.resilience4j.retry.annotation.Retry;
-
-@RestController
-@RequestMapping("/api")
-@AllArgsConstructor
-public class ApiController {
-
-    @Retry(name = "nameTest", fallbackMethod = "fallBackTest")
-    @GetMapping("/{id}")
-    public ResponseEntity<StarWarsCharacter> askToAi(@PathVariable("id") Integer id) {
-        // Lógica para chamar o serviço externo
+    public StarWarsCharacter fallBackGetStarWarCharacterById(Integer id, Exception ex) {
+        return fallBackService.execute(id, ex);
     }
 }
 ```
 
 ### Fallback
 
-O método de fallback é chamado quando a operação original falha. Ele fornece uma resposta alternativa, permitindo que a aplicação continue a funcionar. Aqui está um exemplo de uma implementação de fallback:
+- O método de fallback é chamado quando a operação original falha. Ele fornece uma resposta alternativa, permitindo que a aplicação continue a funcionar.
 
 ```java
 @Service
@@ -64,19 +51,9 @@ public class FallbackService {
 }
 ```
 
-No serviço original, o método de fallback é referenciado:
+### Configuração
 
-```java
-public StarWarsCharacter fallbackMethod(Integer id, Exception ex) {
-    return fallbackService.fallbackGetStarWarCharacterByIdService(id, ex);
-}
-```
-
-## Configuração
-
-### Dependências
-
-Certifique-se de que as seguintes dependências estão incluídas no seu `pom.xml`:
+- Certifique-se de que as seguintes dependências estão incluídas no seu `pom.xml`:
 
 ```xml
 <dependency>
@@ -90,14 +67,18 @@ Certifique-se de que as seguintes dependências estão incluídas no seu `pom.xm
 </dependency>
 ```
 
-### Configurações no `application.properties`
+- Por fim certifique-se de a classe principal esteja com a annotation `@EnableAspectJAutoProxy`
+```java
+@EnableAspectJAutoProxy
+@EnableFeignClients
+@SpringBootApplication
+public class Resilience4jApplication {
 
-Certifique-se de que as seguintes configurações estão presentes no seu arquivo `application.properties`:
+    public static void main(String[] args) {
+        SpringApplication.run(Resilience4jApplication.class, args);
+    }
 
-```properties
-spring.application.name=java-resilience4j
-star.wars.client.url=https://swapi.dev/api/
-star.wars.client.path=people/{id}
+}
 ```
 
-A aplicação estará disponível em `http://localhost:8080/api/{id}`, onde `{id}` é o ID do personagem Star Wars que você deseja consultar.
+- A aplicação estará disponível em `http://localhost:8080/api/{id}`, onde `{id}` é o ID do personagem Star Wars que você deseja consultar.
