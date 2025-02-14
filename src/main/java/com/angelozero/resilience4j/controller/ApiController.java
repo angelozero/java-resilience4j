@@ -18,7 +18,7 @@ public class ApiController {
     private final GetStarWarCharacterByIdService getStarWarCharacterByIdService;
 
     @GetMapping("/{id}")
-    public ResponseEntity<StarWarsCharacter> askToAi(@PathVariable("id") Integer id) {
+    public ResponseEntity<StarWarsCharacter> getStarWarsCharacter(@PathVariable("id") Integer id) {
         return ResponseEntity.ok(getStarWarCharacterByIdService.execute(id));
     }
 }
