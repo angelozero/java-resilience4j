@@ -1,1 +1,1 @@
-# java-resilience4j
+# SpringBoot and Resilience4j
