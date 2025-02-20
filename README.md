@@ -82,3 +82,38 @@ public class Resilience4jApplication {
 ```
 
 - A aplicação estará disponível em `http://localhost:8080/api/{id}`, onde `{id}` é o ID do personagem Star Wars que você deseja consultar.
+
+- No arquivo `application.properties` fica com a seguintes configurações
+```shell
+# Circuit Breaker Config
+# Tamanho da janela usada para calcular a taxa de falhas
+resilience4j.circuitbreaker.instances.GetStarWarCharacterByIdService.slidingWindowSize=3
+
+# Número mínimo de chamadas necessárias antes de calcular a taxa de falhas
+resilience4j.circuitbreaker.instances.GetStarWarCharacterByIdService.minimumNumberOfCalls=6
+
+# Duração do tempo limite para a chamada do serviço (2 segundos)
+resilience4j.timelimiter.instances.GetStarWarCharacterByIdService.timeoutDuration=2s
+
+# Permite cancelar chamadas que estão em execução
+resilience4j.timelimiter.instances.GetStarWarCharacterByIdService.cancelRunningFuture=true
+
+# Limite de falhas que aciona a abertura do Circuit Breaker (em %)
+resilience4j.circuitbreaker.instances.GetStarWarCharacterByIdService.failureRateThreshold=50
+
+# Tempo em milissegundos que o Circuit Breaker permanece aberto antes de tentar mudar para HALF_OPEN (1 segundo)
+resilience4j.circuitbreaker.instances.GetStarWarCharacterByIdService.waitDurationInOpenState=1000
+
+# Número de chamadas permitidas no estado HALF_OPEN para testar se o serviço está disponível novamente
+resilience4j.circuitbreaker.instances.GetStarWarCharacterByIdService.permittedNumberOfCallsInHalfOpenState=3
+```
+
+```shell
+2025-02-19T21:24:14.039080-03:00[America/Sao_Paulo]: CircuitBreaker 'GetStarWarCharacterByIdService' changed state from CLOSED to OPEN
+
+
+2025-02-19T21:24:15.864975-03:00[America/Sao_Paulo]: CircuitBreaker 'GetStarWarCharacterByIdService' changed state from OPEN to HALF_OPEN
+
+
+2025-02-19T21:24:19.625771-03:00[America/Sao_Paulo]: CircuitBreaker 'GetStarWarCharacterByIdService' changed state from HALF_OPEN to CLOSED
+```
